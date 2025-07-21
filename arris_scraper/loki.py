@@ -36,5 +36,5 @@ class LokiExporter:
 
         # Send the payload
         r = httpx.post(f"{self._url}/loki/api/v1/push", json=payload)
-        if r.status_code != 204:
+        if r.status_code != 204 and r.status_code != 400:
             r.raise_for_status()
