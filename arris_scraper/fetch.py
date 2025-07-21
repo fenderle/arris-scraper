@@ -127,10 +127,10 @@ class ArrisFetch:
         if snapshot.exists():
             with open(snapshot, "rb") as f:
                 raw = f.read()
-                if raw.strip():
+                if not raw.strip():
                     return []
                 try:
-                    data = orjson.loads(f.read())
+                    data = orjson.loads(raw)
                 except Exception:
                     return []
                 events: list[Event] = []
