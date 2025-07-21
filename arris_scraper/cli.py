@@ -51,12 +51,12 @@ def events(
         help="Loki export URL",
     ),
     loki_job: str = typer.Option(
-        "modem_log",
+        "arris-scraper",
         envvar="ARRIS_EVENTS_LOKI_JOB",
         help="Loki job identifier",
     ),
     loki_source: str = typer.Option(
-        "arrismodem",
+        "arris-modem",
         envvar="ARRIS_EVENTS_LOKI_SOURCE",
         help="Loki source identifier",
     ),
