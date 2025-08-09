@@ -23,6 +23,7 @@ class SpeedtestResult:
     server_name: str
     server_location: str
     result_id: str
+    result_url: str
 
 
 class Speedtest:
@@ -64,4 +65,5 @@ class Speedtest:
             server_name=str(data["server"]["name"]),
             server_location=str(data["server"]["location"]),
             result_id=str(data["result"]["id"]),
+            result_url=str(data["result"]["url"]),
         )

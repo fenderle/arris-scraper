@@ -83,6 +83,7 @@ class InfluxExporter:
             .field("download_bytes", speedtest.download_bytes.to("byte").magnitude)
             .field("download_elapsed", speedtest.download_elapsed.to("ms").magnitude)
             .field("result_id", speedtest.result_id)
+            .field("result_url", speedtest.result_url)
             .field(
                 "download_latency_iqm",
                 speedtest.download_latency_iqm.to("ms").magnitude,
