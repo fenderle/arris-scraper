@@ -45,3 +45,23 @@ class InfluxExporter:
                 .time(ts)
             )
             self._write_api.write(bucket=bucket, record=point)
+
+        for stream in status.ds_ofdm:
+            point = (
+                Point("arris_ds_ofdm_stream")
+                .tag("dcid", stream.dcid)
+                .tag("fft_type", stream.fft_type)
+                .field("ch_width_mhz", stream.channel_width.to("MHz").magnitude)
+                .field("subcarrier_count", stream.subcarrier_count)
+                .field(
+                    "subcarrier_first_mhz", stream.subcarrier_first.to("MHz").magnitude
+                )
+                .field(
+                    "subcarrier_last_mhz", stream.subcarrier_last.to("MHz").magnitude
+                )
+                .field("rx_mer_pilot_db", stream.rx_mer_pilot.to("dB").magnitude)
+                .field("rx_mer_plc_db", stream.rx_mer_plc.to("dB").magnitude)
+                .field("rx_mer_data_db", stream.rx_mer_data.to("dB").magnitude)
+                .time(ts)
+            )
+            self._write_api.write(bucket=bucket, record=point)

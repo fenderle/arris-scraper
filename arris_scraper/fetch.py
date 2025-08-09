@@ -40,9 +40,23 @@ class DSChannel:
 
 
 @dataclass
+class DSOFDMStream:
+    dcid: int
+    fft_type: str
+    channel_width: Quantity
+    subcarrier_count: int
+    subcarrier_first: Quantity
+    subcarrier_last: Quantity
+    rx_mer_pilot: Quantity
+    rx_mer_plc: Quantity
+    rx_mer_data: Quantity
+
+
+@dataclass
 class Status:
     us: list[USChannel]
     ds: list[DSChannel]
+    ds_ofdm: list[DSOFDMStream]
 
 
 class ArrisFetch:
@@ -285,10 +299,47 @@ class ArrisFetch:
                         freq=q(cells[2]).to("MHz"),
                         power=q(cells[3]).to("dBmV"),
                         snr=q(cells[4]).to("dB"),
-                        modulation=cells[5],
+                        modulation=str(cells[5]),
                         octets=int(cells[6]),
                         corrected=int(cells[7]),
                         uncorrected=int(cells[8]),
+                    )
+                )
+
+            return channels
+
+    def _parse_ds_ofdm_table(
+        self,
+        html: str,
+    ) -> list | None:
+        soup = BeautifulSoup(html, "html.parser")
+        tables = soup.select("table")
+        ds_table = tables[2] if len(tables) > 2 else None
+        if ds_table:
+            channels: list[DSOFDMStream] = []
+            ureg = UnitRegistry(autoconvert_offset_to_baseunit=True)
+
+            # Define dBmV
+            ureg.define("dBmV = 20 * log10(V / millivolt)")
+
+            q = ureg.Quantity
+
+            for row in ds_table.select("tr"):
+                cells = [cell.get_text(strip=True) for cell in row.select("td, th")]
+                if len(cells) < 9 or cells[1] == "":
+                    continue
+
+                channels.append(
+                    DSOFDMStream(
+                        dcid=int(cells[0].replace("Downstream ", "")),
+                        fft_type=str(cells[1]),
+                        channel_width=q(float(cells[2]), "MHz"),
+                        subcarrier_count=int(cells[3]),
+                        subcarrier_first=q(float(cells[4]), "MHz"),
+                        subcarrier_last=q(float(cells[5]), "MHz"),
+                        rx_mer_pilot=q(float(cells[6]), "dB"),
+                        rx_mer_plc=q(float(cells[7]), "dB"),
+                        rx_mer_data=q(float(cells[8]), "dB"),
                     )
                 )
 
@@ -319,7 +370,9 @@ class ArrisFetch:
         html = await self._fetch_page(self.status_url)
         us = self._parse_upstream_table(html)
         ds = self._parse_downstream_table(html)
+        ds_ofdm = self._parse_ds_ofdm_table(html)
         return Status(
             us=us,
             ds=ds,
+            ds_ofdm=ds_ofdm,
         )
