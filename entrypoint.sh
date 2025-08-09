@@ -24,7 +24,7 @@ run_speedtest() {
     # prevent overlap if the previous speedtest is still running
     {
       flock -n 9 || { echo "[speedtest] already running, skipping"; }
-      arris-scraper speedtest || echo "[speedtest] failed"
+      arris-scraper speedtest --speedtest-path /usr/local/bin/speedtest || echo "[speedtest] failed"
     } 9>"$lockfile"
     sleep "$SPEEDTEST_DELAY"
   done
