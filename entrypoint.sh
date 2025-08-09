@@ -16,7 +16,7 @@ while true; do
     # Run speedtest if enough time has passed
     if [[ $last_speedtest -eq 0 || $(( now - last_speedtest )) -ge $SPEEDTEST_DELAY ]]; then
         echo "Running speedtest at $(date)"
-        arris-scraper speedtest --speedtest_path /usr/local/bin/speedtest
+        arris-scraper speedtest --speedtest-path /usr/local/bin/speedtest
         last_speedtest=$now
     fi
 
