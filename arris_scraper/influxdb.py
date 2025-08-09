@@ -3,6 +3,7 @@ from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
 
 from arris_scraper.fetch import Status
+from arris_scraper.speedtest import SpeedtestResult
 
 
 class InfluxExporter:
@@ -15,7 +16,7 @@ class InfluxExporter:
         self._client = InfluxDBClient(url=url, token=token, org=org)
         self._write_api = self._client.write_api(write_options=SYNCHRONOUS)
 
-    def export(self, status: Status, bucket: str):
+    def export_status(self, status: Status, bucket: str):
         ts = datetime.now(timezone.utc)
 
         for channel in status.us:
@@ -65,3 +66,32 @@ class InfluxExporter:
                 .time(ts)
             )
             self._write_api.write(bucket=bucket, record=point)
+
+    def export_speedtest(self, speedtest: SpeedtestResult, bucket: str):
+        ts = datetime.now(timezone.utc)
+
+        point = (
+            Point("arris_speedtest")
+            .tag("isp", speedtest.isp)
+            .tag("server_id", speedtest.server_id)
+            .tag("server_name", speedtest.server_name)
+            .tag("server_location", speedtest.server_location)
+            .field("ping_latency_ms", speedtest.ping_latency.to("ms").magnitude)
+            .field("ping_jitter_ms", speedtest.ping_jitter.to("ms").magnitude)
+            .field("packet_loss_pct", speedtest.packet_loss.to("%").magnitude)
+            .field("download_bw_mbps", speedtest.download_bw.to("Mbit/s").magnitude)
+            .field("download_bytes", speedtest.download_bytes.to("byte").magnitude)
+            .field("download_elapsed", speedtest.download_elapsed.to("ms").magnitude)
+            .field("result_id", speedtest.result_id)
+            .field(
+                "download_latency_iqm",
+                speedtest.download_latency_iqm.to("ms").magnitude,
+            )
+            .field("upload_bw_mbps", speedtest.upload_bw.to("Mbit/s").magnitude)
+            .field("upload_bytes", speedtest.upload_bytes.to("byte").magnitude)
+            .field("upload_elapsed", speedtest.upload_elapsed.to("ms").magnitude)
+            .field(
+                "upload_latency_iqm", speedtest.upload_latency_iqm.to("ms").magnitude
+            )
+        )
+        self._write_api.write(bucket=bucket, record=point)

@@ -9,6 +9,7 @@ from arris_scraper.context import ArrisContext, GlobalOptions
 from arris_scraper.fetch import ArrisFetch
 from arris_scraper.loki import LokiExporter
 from arris_scraper.influxdb import InfluxExporter
+from arris_scraper.speedtest import Speedtest
 
 load_dotenv()
 app = typer.Typer(add_completion=False)
@@ -112,8 +113,57 @@ def status(
 
     if influx_url:
         influx = InfluxExporter(influx_url, influx_token, influx_org)
-        influx.export(status, influx_bucket)
+        influx.export_status(status, influx_bucket)
         typer.echo(f"Exported status to InfluxDB")
+
+
+@app.command()
+def speedtest(
+    ctx: typer.Context,
+    influx_url: str = typer.Option(
+        None,
+        envvar="ARRIS_SPEEDTEST_INFLUX_URL",
+        help="InfluxDB URL",
+    ),
+    influx_token: str = typer.Option(
+        None,
+        envvar="ARRIS_SPEEDTEST_INFLUX_TOKEN",
+        help="InfluxDB Token",
+    ),
+    influx_org: str = typer.Option(
+        None,
+        envvar="ARRIS_SPEEDTEST_INFLUX_ORG",
+        help="InfluxDB org",
+    ),
+    influx_bucket: str = typer.Option(
+        None,
+        envvar="ARRIS_SPEEDTEST_INFLUX_BUCKET",
+        help="InfluxDB bucket",
+    ),
+    speedtest_path: str = typer.Option(
+        ...,
+        envvar="ARRIS_SPEEDTEST_PATH",
+        help="Path to OOKLA speedtest binary",
+    ),
+):
+    if influx_url:
+        missing = []
+        if not influx_token:
+            missing.append("--influx-token")
+        if not influx_org:
+            missing.append("--influx-org")
+        if not influx_bucket:
+            missing.append("--influx-bucket")
+        if missing:
+            raise typer.BadParameter(f"--influx-url requires: {', '.join(missing)}")
+
+    speedtest = Speedtest(speedtest_path)
+    result = speedtest.run()
+
+    if influx_url and result:
+        influx = InfluxExporter(influx_url, influx_token, influx_org)
+        influx.export_speedtest(result, influx_bucket)
+        typer.echo(f"Exported speedtest to InfluxDB")
 
 
 if __name__ == "__main__":

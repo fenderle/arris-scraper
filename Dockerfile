@@ -10,7 +10,26 @@ RUN apt-get update \
       build-essential \
  && rm -rf /var/lib/apt/lists/*
 
-# 3) Install Poetry
+# Add Ookla Speedtest CLI (no repo; download tarball)
+ARG OOKLA_VERSION=1.2.0
+RUN set -eux; \
+    apt-get update && apt-get install -y --no-install-recommends ca-certificates curl && rm -rf /var/lib/apt/lists/*; \
+    arch="$(dpkg --print-architecture)"; \
+    case "$arch" in \
+      amd64) OOKLA_ARCH="x86_64" ;; \
+      arm64) OOKLA_ARCH="aarch64" ;; \
+      i386)  OOKLA_ARCH="i386" ;; \
+      armhf) OOKLA_ARCH="armhf" ;; \
+      *) echo "unsupported arch: $arch" && exit 1 ;; \
+    esac; \
+    url="https://install.speedtest.net/app/cli/ookla-speedtest-${OOKLA_VERSION}-linux-${OOKLA_ARCH}.tgz"; \
+    echo "Fetching $url"; \
+    curl -fsSL "$url" -o /tmp/speedtest.tgz; \
+    tar -xzf /tmp/speedtest.tgz -C /usr/local/bin speedtest; \
+    rm -f /tmp/speedtest.tgz; \
+    /usr/local/bin/speedtest --version
+
+    # 3) Install Poetry
 ENV POETRY_VERSION=2.1.3 \
     POETRY_HOME=/opt/poetry \
     PATH="$POETRY_HOME/bin:$PATH"
