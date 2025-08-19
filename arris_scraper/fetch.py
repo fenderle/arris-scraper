@@ -1,11 +1,13 @@
 import httpx
 import orjson
+import re
 
 from bs4 import BeautifulSoup
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from pint import UnitRegistry, Quantity
+from typing import Optional
 from zoneinfo import ZoneInfo
 
 
@@ -64,18 +66,43 @@ class ArrisFetch:
         self,
         base_url: str,
         local_tz: str,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
     ):
         self.base_url = base_url.rstrip("/")
+        self.login_url = f"{self.base_url}/cgi-bin/login_cgi"
         self.status_url = f"{self.base_url}/cgi-bin/status_cgi"
         self.events_url = f"{self.base_url}/cgi-bin/event_cgi"
         self.headers = {"User-Agent": "arris-scraper/1.0"}
         self.local_tz = ZoneInfo(local_tz)
+        self.username = username
+        self.password = password
 
     async def _fetch_page(
         self,
         url: str,
     ) -> str:
         async with httpx.AsyncClient(verify=False, timeout=10) as client:
+            if self.username and self.password:
+                response = await client.post(
+                    self.login_url,
+                    data={
+                        "username": self.username,
+                        "password": self.password,
+                    },
+                    headers={"Content-Type": "application/x-www-form-urlencoded"},
+                )
+                response.raise_for_status()
+
+                # If the login is successful it contains the CSRF, however, it is
+                # not required further on. But we will use it for "login success"
+                match = re.search(
+                    r'sessionStorage\.setItem\("csrf_token",\s*(\d+)\);', response.text
+                )
+                csrf_token = int(match.group(1)) if match else None
+                if not csrf_token:
+                    raise RuntimeError("CSRF token not found in login response")
+
             response = await client.get(url, headers=self.headers)
             response.raise_for_status()
             return response.text

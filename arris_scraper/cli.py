@@ -28,9 +28,19 @@ def main(
         envvar="ARRIS_TIMEZONE",
         help="Timezone for modem timestamps",
     ),
+    username: str = typer.Option(
+        None,
+        envvar="ARRIS_USERNAME",
+        help="Username for modem (CM3500B)",
+    ),
+    password: str = typer.Option(
+        None,
+        envvar="ARRIS_PASSWORD",
+        help="Password for modem (CM3500B)",
+    ),
 ):
     """Arris Scraper CLI — provides modem log fetching and export tools."""
-    ctx.obj = ArrisContext(opts=GlobalOptions(modem_url, timezone))
+    ctx.obj = ArrisContext(opts=GlobalOptions(modem_url, timezone, username, password))
 
 
 @app.command()
@@ -63,7 +73,12 @@ def events(
     ),
 ):
     arris_ctx: ArrisContext = ctx.obj
-    fetch = ArrisFetch(arris_ctx.opts.modem_url, arris_ctx.opts.timezone)
+    fetch = ArrisFetch(
+        arris_ctx.opts.modem_url,
+        arris_ctx.opts.timezone,
+        arris_ctx.opts.username,
+        arris_ctx.opts.password,
+    )
     events = asyncio.run(fetch.get_events(Path(snapshot), delta))
 
     if loki_url:
@@ -108,7 +123,12 @@ def status(
             raise typer.BadParameter(f"--influx-url requires: {', '.join(missing)}")
 
     arris_ctx: ArrisContext = ctx.obj
-    fetch = ArrisFetch(arris_ctx.opts.modem_url, arris_ctx.opts.timezone)
+    fetch = ArrisFetch(
+        arris_ctx.opts.modem_url,
+        arris_ctx.opts.timezone,
+        arris_ctx.opts.username,
+        arris_ctx.opts.password,
+    )
     status = asyncio.run(fetch.get_status())
 
     if influx_url:
